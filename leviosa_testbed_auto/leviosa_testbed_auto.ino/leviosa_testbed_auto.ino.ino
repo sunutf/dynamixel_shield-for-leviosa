@@ -9,23 +9,31 @@
 #define RESOLUTION 2
 #define ITER_CNT   3
 
+const int INIT_ANGLE_VAL = 0;
+const int END_ANGLE_VAL = 1800;
+const int RESOLUTION_VAL = 1800;
+const int ITER_CNT_VAL = 10;
+
 DynamixelShield dxl;
 SoftwareSerial uart(7,8); //RX,TX for give user input & monitoring percentange
 
 char     buf[10] ;
 char     serialData[20]; 
-int32_t  command_set[4];
+char  command_set[4];
 char     buf_index =0;
+char     command_packet[9] = {'#',0,0,0,0,0,0,0,'@'}; //
 
-bool     working_state = false;
+bool     hearing_state = false;
 bool     start_state = false;
 int32_t  comma_cnt = 0;
 int32_t  angle = 0;
 int32_t  step = 0; 
 int8_t   index = 0;
+int32_t  cnt = 0;
+int8_t  rx_cnt =0;
 
 
-int32_t parseCommand(char*, int32_t*) ;
+int32_t parseCommand(char*) ;
 
   
 void setup() {
@@ -45,193 +53,99 @@ void setup() {
 
 void loop() {
 // put your main code here, to run repeatedly:
-  if(!working_state)
+  //write packet to processing 
+  if(!hearing_state)
   {
-    memset(command_set, 0, sizeof(command_set)); 
-    waitUntilArrive(); 
-    serialGetBuffer(serialData);
+    //send packet with initial values
+    command_packet[1] = (INIT_ANGLE_VAL >> 8 | 0);
+    command_packet[2] = (INIT_ANGLE_VAL | 0);
+    command_packet[3] = (END_ANGLE_VAL >> 8 | 0);
+    command_packet[4] = (END_ANGLE_VAL | 0);
+    command_packet[5] = (RESOLUTION_VAL >> 8 | 0);
+    command_packet[6] = (RESOLUTION_VAL | 0);
+    command_packet[7] = ITER_CNT_VAL;
 
-    // uart.readBytesUntil('\0', serialData, 20); 
-    comma_cnt = parseCommand(serialData, command_set); 
+    uart.write(command_packet, 9);
     
-    // always echo 
-    //uart.print(serialData);
-    // end of message is maked with a \n 
-        
-    // clear serialData array 
-    memset(serialData, 0, sizeof(serialData)); 
-  
-    working_state = true;
-    angle         = command_set[INIT_ANGLE];
-    step          = (command_set[END_ANGLE] - command_set[INIT_ANGLE])/command_set[RESOLUTION];
-
-    uart.println(command_set[INIT_ANGLE]);
-    uart.println(command_set[END_ANGLE]);
-    uart.println(command_set[RESOLUTION]);
-  }
-  
-  else if(working_state)
-  {
-    if(angle == command_set[END_ANGLE]) working_state = false;
-    
+    hearing_state = true;
+    angle         = INIT_ANGLE_VAL;
+    step          = (END_ANGLE_VAL - INIT_ANGLE_VAL)/RESOLUTION_VAL;
     dxl.setGoalAngle(1, angle);
-    
-    uart.println(angle);
-    // uart.println(dxl.getGoalAngle(1));
-    printProcessingPercentage(angle);
-    
-    angle += step;
-  
-    delay(10);
   }
-}
 
-
-
-
-  // int32_t angle = (int32_t)atoi(buf);
-  // if( angle > 1800) angle = 1800;
-  // if( angle < -1800) angle = -1800;
-
-  // dxl.setGoalAngle(1, angle);
-  // uart.println(angle);
-  // uart.println(dxl.getGoalAngle(1));
-  // delay(500);
-
-
-
-//
-//if (dxl.getDxlCount() > 0)
-//  {
-//    dxl.setGoalAngle(1, 0);
-//    uart.println(dxl.getGoalAngle(1));
-//    delay(1000);
-//    dxl.setGoalAngle(1, 900);
-//    uart.println(dxl.getGoalAngle(1));
-//    delay(1000);
-//    dxl.setGoalAngle(1, 0);
-//    uart.println(dxl.getGoalAngle(1));
-//    delay(1000);
-//    dxl.setGoalAngle(1, -900);
-//    uart.println(dxl.getGoalAngle(1));
-//    delay(1000);    
-//  }
-
-
-
-// void bufClear()
-// {
-//   for(int a=0;a<10;a++)
-//   {
-//     buf[a] = NULL;
-//   }
-//   buf_index = 0;
-// }
-
-// 문자열을  정수로 변환
-int atoi(String & str)
-{
-  char buf[BUF_SIZE];    // 문자열을 실수로 바꿀 때 필요한 buffer 정의
-  str.toCharArray(buf, BUF_SIZE);
-  return atoi(buf);    // 문자 배열을 정수로 변환
-}
-
-int32_t parseCommand(char* command, int32_t* return_values) 
-{ 
-  // parsing state machine 
-  int i = 0, j = 0;
-  int head_cnt = 0, tail_cnt = 0;
-  int32_t cnt_number = 0; 
-  char temp_command[] = "";
-  boolean parsing_state = true;
-  
-  uart.print("head start ");
-  while(parsing_state)
+  //read packet from processing
+  else 
   {
-    if(*(command + i) == 'A')
+    
+   
+    if(uart.available() >0)
     {
-      head_cnt++;
-      i++;
-    }
-    else
-    {
-      parsing_state = false;
-      working_state = false;
-      return 0;
-    }
-    uart.println(head_cnt);
-    if(head_cnt > 1 ) break;
-  }
+      char c = uart.read();
 
-  uart.print("parsing start ");
-  
-  while(parsing_state) 
-  { 
-    //uart.println(cnt_number);
-    switch(*(command + i)) 
-    { 
-      case ',':
-        return_values[cnt_number] = (int32_t)atoi(temp_command);
-        // uart.print('\0');
-        // uart.println(return_values[cnt_number]);
-        memset(temp_command, 0, sizeof(temp_command)); 
-        cnt_number++;
-        j = 0;
-        break; 
-     
-      case 'B':
-        tail_cnt++;
-        if(tail_cnt >1)
+      if(!start_state)
+      {
+        if(c=='#') start_state = true;
+      }
+      else
+      {
+        if(c=='@')
         {
-          parsing_state = false;
-          working_state = false;
+          if(cnt == parseCommand(command_set))
+          {
+             angle += step;
+             dxl.setGoalAngle(1, angle);
+             cnt++; 
+             memset(command_set, 0, sizeof(command_set)); 
+             delay(10);
+          }
+          start_state = false;
+          rx_cnt = 0;
+         
         }
         else
         {
-          *(temp_command + j) = *(command + i);
-          j++;
+          command_set[rx_cnt++] = c;
         }
-        break;
-
-      default:          
-        *(temp_command + j) = *(command + i);
-        j++;
-        break; 
-    } 
-    i++; 
+      }
+    }
   }
-  return_values[cnt_number] = (int32_t)atoi(temp_command);
+}
+//    
+//    waitUntilArrive();
+//    
+//    
+//    uart.readBytesUntil('\0', serialData, 20);
+//    comma_cnt = parseCommand(serialData, command_set); 
+//    if(comma_cnt == 1 && command_set[0] == cnt)
+//    {
+//      cnt++;
+//      angle += step;
+//      dxl.setGoalAngle(1, angle); 
+//      delay(10);
+//      sendPacket(cnt);
+//    }
+//  } 
+//}
+
+int32_t parseCommand(char* buf)
+{
+  int32_t cnt = (buf[0]) << 8 + buf[1];
+  return cnt;
+}
+//
+//void printProcessingPercentage(int32_t curr_angle)
+//{
+//  int32_t percentage = 100 * curr_angle / (command_set[END_ANGLE] - command_set[INIT_ANGLE]);
+//  uart.print("process : ");
+//  uart.println(percentage);
+//}
+//
+//void  waitUntilArrive(void)
+//{
+//  while(1)
+//  {
+//    if(uart.available()) break;
+//  }
+//}
+
  
-  return cnt_number;
-} 
-
-void printProcessingPercentage(int32_t curr_angle)
-{
-  int32_t percentage = 100 * curr_angle / (command_set[END_ANGLE] - command_set[INIT_ANGLE]);
-  uart.print("process : ");
-  uart.println(percentage);
-}
-
-void  waitUntilArrive(void)
-{
-  while(1)
-  {
-    if(uart.available()) break;
-  }
-}
-
-void serialGetBuffer(char* buffer)
-{
-  uint8_t index = 0;
-  int32_t temp;
-
-  temp = uart.read();
-  while(temp != -1)
-  { 
-    uart.println(temp);
-    
-    *(buffer + index) = temp;
-    index++;
-    temp = uart.read();      
-  }
-}
