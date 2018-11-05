@@ -23,13 +23,13 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   
-  //bufClear();
+//  bufClear();
   buf_index =0;
-//  while(uart.available())
-//  {
-//    buf[buf_index] = uart.read();
-//    buf_index++;
-//  }
+  while(uart.available())
+  {
+    buf[buf_index] = uart.read();
+    buf_index++;
+  }
 
   int32_t angle = (int32_t)atoi(buf);
   if( angle > 1800) angle = 1800;
