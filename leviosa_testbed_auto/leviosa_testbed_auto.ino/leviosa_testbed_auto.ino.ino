@@ -38,8 +38,7 @@ int32_t parseCommand(char*) ;
   
 void setup() {
   // put your setup code here, to run once:
-  
-  
+    
   dxl.begin(1000000, DXL_PACKET_VER_2_0);
   delay(1000);
   dxl.ping();
