@@ -9,9 +9,10 @@
 #define RESOLUTION 2
 #define ITER_CNT   3
 
+//strongly recommand to use, these values, except ITER_CNT_VAL
 const int INIT_ANGLE_VAL = 0;
 const int END_ANGLE_VAL = 1800;
-const int RESOLUTION_VAL = 1800;
+const int RESOLUTION_VAL = 180;
 const int ITER_CNT_VAL = 10;
 
 DynamixelShield dxl;
@@ -19,18 +20,19 @@ SoftwareSerial uart(7,8); //RX,TX for give user input & monitoring percentange
 
 char     buf[10] ;
 char     serialData[20]; 
-char  command_set[4];
+char     command_set[4];
 char     buf_index =0;
 char     command_packet[9] = {'#',0,0,0,0,0,0,0,'@'}; //
+char     ack_packet[4] = {'#', 0, 0,'@'};
 
 bool     hearing_state = false;
 bool     start_state = false;
 int32_t  comma_cnt = 0;
 int32_t  angle = 0;
-int32_t  step = 0; 
+int32_t  step_val = 0; 
 int8_t   index = 0;
 int32_t  cnt = 0;
-int8_t  rx_cnt =0;
+int8_t   rx_cnt =0;
 
 
 int32_t parseCommand(char*) ;
@@ -68,15 +70,13 @@ void loop() {
     
     hearing_state = true;
     angle         = INIT_ANGLE_VAL;
-    step          = (END_ANGLE_VAL - INIT_ANGLE_VAL)/RESOLUTION_VAL;
+    step_val      = (END_ANGLE_VAL - INIT_ANGLE_VAL)/RESOLUTION_VAL;
     dxl.setGoalAngle(1, angle);
   }
 
   //read packet from processing
   else 
   {
-    
-   
     if(uart.available() >0)
     {
       char c = uart.read();
@@ -91,15 +91,20 @@ void loop() {
         {
           if(cnt == parseCommand(command_set))
           {
-             angle += step;
+             angle += step_val;
              dxl.setGoalAngle(1, angle);
              cnt++; 
+             
+             ack_packet[1] = (cnt >> 8 | 0);
+             ack_packet[2] = (cnt | 0) ;
+             uart.write(ack_packet, 4); // #, cnt_H, cnt_L, @
+             
              memset(command_set, 0, sizeof(command_set)); 
              delay(10);
+             if(cnt == RESOLUTION_VAL) while(1);
           }
           start_state = false;
-          rx_cnt = 0;
-         
+          rx_cnt = 0;         
         }
         else
         {
@@ -128,7 +133,8 @@ void loop() {
 
 int32_t parseCommand(char* buf)
 {
-  int32_t cnt = (buf[0]) << 8 + buf[1];
+  int32_t cnt = ((buf[0]) << 8) | buf[1];
+  uart.write(cnt);
   return cnt;
 }
 //
