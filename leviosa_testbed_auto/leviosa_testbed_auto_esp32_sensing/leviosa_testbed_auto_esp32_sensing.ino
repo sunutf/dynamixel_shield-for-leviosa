@@ -7,6 +7,7 @@
 #include "Wire.h"
 #include "Adafruit_TCS34725.h"
 
+#define ID 11
 /*========================================================================*/
 //Snitch part
 /*========================================================================*/
@@ -343,8 +344,8 @@ void loop() {
   {
      prev_time = millis();
     char c = Serial2.read();
-    Serial.print(" ==");
-    Serial.print((int)c);
+//    Serial.print(" ==");
+//    Serial.print((int)c);
 //    
    
 
@@ -389,7 +390,7 @@ void loop() {
         if(c == '#')
         {
           parse_start = true;
-          Serial.println("Cali run\n");
+//          Serial.println("Cali run\n");
         }
      }
      
@@ -410,18 +411,21 @@ void loop() {
               while(1);
             }
 
-            Serial.print("WE SET");
-            Serial.println(cnt);
+//            Serial.print("WE SET");
+//            Serial.println(cnt);
             if(cnt == parseCommand(command_packet)){
                   curr_angle += step;
-               Serial.println(cnt);
-              //calibrationLuxStore(id, curr_angle, iter_rx_cnt);
+//               Serial.println(cnt);
+              
+              readLuxFromID(ID);
+              printRAW(cnt);
+              
               cnt++;
               ack_packet[1] = (cnt >> 8 | 0);
               ack_packet[2] = (cnt | 0);
               packaging(ack_packet);
               ret = Serial2.write((uint8_t *)ack_packet, 4);
-              Serial.write((uint8_t *)ack_packet, 4);
+//              Serial.write((uint8_t *)ack_packet, 4);
               
               
             }
@@ -533,38 +537,57 @@ void sendToAllSet(void)
 }
 
 void readLuxFromID(int id){
-   int mux_id = id%2;
+   int mux_id = 2*(id/3);
    switch(id%3){
     case 0 :
       tcaSelect(mux_id, 7);
       rgb_sensor.getData();
-      raw_id[DEG0];
-      tcaDeSelect(mux_id,6);
+      raw_id[DEG0] = rgb_sensor.lux;
+      tcaSelect(mux_id,6);
       rgb_sensor.getData();
-      raw_id[DEG45];
+      raw_id[DEG45]= rgb_sensor.lux;
+      
       tcaDeSelect(mux_id);
-
       mux_id += 1;
+
       tcaSelect(mux_id, 7);
       rgb_sensor.getData();
-      raw_id[DEG90];
-      tcaDeSelect(mux_id,6);
+      raw_id[DEG90] = rgb_sensor.lux;
+      tcaSelect(mux_id,6);
       rgb_sensor.getData();
-      raw_id[DEG135];
-      tcaDeSelect(mux_id);
+      raw_id[DEG135] = rgb_sensor.lux;
 
       break;
       
-   case  1;
-   
+   case  1:
+      for(int ch = 0; ch<4; ch++){
+        tcaSelect(mux_id,ch);
+        rgb_sensor.getData();
+        raw_id[ch] = rgb_sensor.lux;
+      }
+      tcaDeSelect(mux_id);
+      break;
+
+    case  2:
+      for(int ch = 0; ch<4; ch++){
+        tcaSelect(mux_id,ch);
+        rgb_sensor.getData();
+        raw_id[ch] = rgb_sensor.lux;
+      }
+      tcaDeSelect(mux_id);
+      break;
    }
-   for(int ch = 0 ; ch<8; ch++){
-     //we don't have sensors in ch = 4,5, don't need to spend time here
-    if(ch == 4 | ch ==5) continue;
-    
-    tcaSelect(id,ch);
-    rgb_sensor.getData();
-    snitchConMux2Table(id, ch, rgb_sensor.lux);
-   }
-   tcaDeSelect(id);
 }
+
+void printRAW(int cnt){
+  Serial.printf("%d", cnt);
+  Serial.printf(" : ");
+  Serial.print(raw_id[DEG0]);
+  Serial.print(",");
+  Serial.print(raw_id[DEG45]);
+  Serial.print(",");
+  Serial.print(raw_id[DEG90]);
+  Serial.print(",");
+  Serial.println(raw_id[DEG135]);
+}
+

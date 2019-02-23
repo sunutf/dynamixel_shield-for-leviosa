@@ -12,8 +12,8 @@
 //strongly recommand to use, these values, except ITER_CNT_VAL
 const int INIT_ANGLE_VAL = 0;
 const int END_ANGLE_VAL = 1800;
-const int RESOLUTION_VAL = 180;
-const int ITER_CNT_VAL = 10;
+const int RESOLUTION_VAL = 1800;
+const int ITER_CNT_VAL = 1;
 
 DynamixelShield dxl;
 SoftwareSerial uart(12,13); //RX,TX for give user input & monitoring percentange
