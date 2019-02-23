@@ -80,7 +80,7 @@ void loop() {
         if(c == '#')
         {
           parse_start = true;
-          //Serial.println("Cali run\n");
+          Serial.println("Cali run\n");
         }
      }
      
@@ -101,8 +101,8 @@ void loop() {
               while(1);
             }
 
-//            Serial.print("WE SET");
-//            Serial.println(cnt);
+            Serial.print("WE SET");
+            Serial.println(cnt);
             if(cnt == parseCommand(command_packet)){
                   curr_angle += step;
                Serial.println(cnt);

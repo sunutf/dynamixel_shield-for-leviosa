@@ -16,7 +16,7 @@ const int RESOLUTION_VAL = 1800;
 const int ITER_CNT_VAL = 10;
 
 DynamixelShield dxl;
-SoftwareSerial uart(7,8); //RX,TX for give user input & monitoring percentange
+SoftwareSerial uart(12,13); //RX,TX for give user input & monitoring percentange
 
 char     buf[10] ;
 char     serialData[20]; 
