@@ -12,12 +12,14 @@
 //strongly recommand to use, these values, except ITER_CNT_VAL
 const int INIT_ANGLE_VAL = 0;
 const int END_ANGLE_VAL = 1800;
-const int RESOLUTION_VAL = 1800;
+const int RESOLUTION_VAL = 180;
 const int ITER_CNT_VAL = 10;
 
 DynamixelShield dxl;
 SoftwareSerial uart(12,13); //RX,TX for give user input & monitoring percentange
+//SoftwareSerial SoftSerial(7,8);
 
+#define Debug Serial
 char     buf[10] ;
 char     serialData[20]; 
 char     command_set[4];
@@ -44,13 +46,14 @@ uint32_t parseCommand(char*) ;
 void setup() {
   // put your setup code here, to run once:
     
-//  dxl.begin(1000000, DXL_PACKET_VER_2_0);
-//  delay(1000);
-//  dxl.ping();
-//  dxl.torqueOn(DXL_ALL_ID);
-//  // dxl.torqueOff(DXL_ALL_ID);
-  Serial.begin(9600);
+  dxl.begin(1000000, DXL_PACKET_VER_2_0);
+  delay(1000);
+  dxl.ping();
+  dxl.torqueOn(DXL_ALL_ID);
+  // dxl.torqueOff(DXL_ALL_ID);
+//  Debug.begin(9600);
   uart.begin(9600);
+  
 
   
 }
@@ -74,7 +77,7 @@ void loop() {
     hearing_state = true;
     angle         = INIT_ANGLE_VAL;
     step_val      = (END_ANGLE_VAL - INIT_ANGLE_VAL)/RESOLUTION_VAL;
-//    dxl.setGoalAngle(1, angle);
+    dxl.setGoalAngle(1, angle);
   }
 
   //read packet from processing
@@ -85,9 +88,9 @@ void loop() {
     {
       
       char c = uart.read();
-       Serial.print(" =");
-       Serial.print((int)c);
-     
+//       Debug.print(" =");
+//       Debug.print((int)c);
+//     
 
       if(!start_state)
       {
@@ -102,19 +105,18 @@ void loop() {
           {
             retry = false;
             prev_time = millis();
-  //           Serial.print("WE SET : ");
-  //           Serial.println(cnt);
+  //           Debug.print("WE SET : ");
+  //           Debug.println(cnt);
             if(cnt == parseCommand(command_set))
             {
                
-               //dxl.setGoalAngle(1, angle);
-               Serial.println(cnt);
+               dxl.setGoalAngle(1, angle);
+//               Debug.println(cnt);
                
                ack_packet[1] = (cnt >> 8 | 0);
                ack_packet[2] = (cnt | 0) ;
                packaging(ack_packet); 
                uart.write((uint8_t *)ack_packet, 4); // #, cnt_H, cnt_L, @
-               Serial.write((uint8_t *)ack_packet, 4);
                
                angle += step_val;
                cnt++; 
@@ -122,10 +124,10 @@ void loop() {
                if(cnt == RESOLUTION_VAL) while(1);
             }
             else{
-  //             Serial.println(cnt);
-               Serial.print("RE");
-              
-               Serial.println(cnt);
+  //            Debug.println(cnt);
+//               Debug.print("RE");
+//              
+//               Debug.println(cnt);
                
                ack_packet[1] = ((cnt-1) >> 8 | 0);
                ack_packet[2] = ((cnt-1) | 0) ;
@@ -153,10 +155,10 @@ void loop() {
         
         if(retry)
         {
-          Serial.print("RE1");
-            
-         Serial.println(cnt);
-         
+//          Debug.print("RE1");
+//            
+//         Debug.println(cnt);
+//         
          ack_packet[1] = ((cnt-1) >> 8 | 0);
          ack_packet[2] = ((cnt-1) | 0) ;
          packaging(ack_packet);
@@ -195,8 +197,8 @@ void packaging(char* buf)
 uint32_t parseCommand(char* buf)
 {
   uint32_t l_cnt = ((uint8_t)(buf[0]) << 8) | (uint8_t)buf[1];
-  Serial.print("GET : ");
-  Serial.println(l_cnt);
+//  Debug.print("GET : ");
+//  Debug.println(l_cnt);
   return l_cnt;
 }
 //
