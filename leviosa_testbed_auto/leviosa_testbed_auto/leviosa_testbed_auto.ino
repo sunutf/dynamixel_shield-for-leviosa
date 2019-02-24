@@ -12,7 +12,7 @@
 //strongly recommand to use, these values, except ITER_CNT_VAL
 const int INIT_ANGLE_VAL = 0;
 const int END_ANGLE_VAL = 1800;
-const int RESOLUTION_VAL = 1800;
+const int RESOLUTION_VAL = 180;
 const int ITER_CNT_VAL = 1;
 
 DynamixelShield dxl;
@@ -46,7 +46,7 @@ uint32_t parseCommand(char*) ;
 void setup() {
   // put your setup code here, to run once:
     
-  dxl.begin(1000000, DXL_PACKET_VER_2_0);
+  dxl.begin(115200, DXL_PACKET_VER_2_0);
   delay(1000);
   dxl.ping();
   dxl.torqueOn(DXL_ALL_ID);
@@ -111,6 +111,7 @@ void loop() {
             {
                
                dxl.setGoalAngle(1, angle);
+               delay(100);
 //               Debug.println(cnt);
                
                ack_packet[1] = (cnt >> 8 | 0);
