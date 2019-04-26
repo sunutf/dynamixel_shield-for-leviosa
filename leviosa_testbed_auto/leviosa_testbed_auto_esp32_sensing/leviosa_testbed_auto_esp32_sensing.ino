@@ -108,6 +108,35 @@ void extractLuxCalc(snitch_surf_t* surf_set){
 
 }
 
+void extractLuxCaliCalc(snitch_surf_t* surf_set){
+  int16_t diff_luxA;
+  int16_t diff_luxB;
+  int16_t diff_luxC;
+  float src_lux[4];
+  float amb_lux[4];
+  float A;
+  float B;
+  
+  for(int deg =0; deg<1; deg++){
+    diff_luxA = surf_set->raw_lux[deg%4] - surf_set->raw_lux[(deg+1)%4];
+    diff_luxB = surf_set->raw_lux[(deg+1)%4] - surf_set->raw_lux[(deg+2)%4];
+    diff_luxC = surf_set->raw_lux[(deg+2)%4] - surf_set->raw_lux[deg%4];
+   
+    A =   (float)(-2*(diff_luxA/0.993 + diff_luxC/(-0.056))/(-36.925));
+    B =   (float)(-2*(diff_luxA/1.117 + diff_luxC/1.998))/(0.939));
+    src_lux[deg] =   sqrtf(A^2 + B^2);
+  
+    amb_lux[deg] = ((float(2*surf_set->raw_lux[deg%4]-src_lux[deg]-A)/2;
+  }
+
+//  surf_set->ambi_lux = (amb_lux[0]+amb_lux[1]+amb_lux[2]+amb_lux[3])/4.0f;
+//  surf_set->polar_lux = (src_lux[0]+src_lux[1]+src_lux[2]+src_lux[3])/4.0f;
+
+    surf_set->ambi_lux = amb_lux[0];
+    surf_set->polar_lux = src_lux[0];
+
+}
+
 /*========================================================================*/
 //TCS34725 - Lux Sensor
 /*========================================================================*/
@@ -414,8 +443,8 @@ void loop() {
 //            Serial.print("WE SET");
 //            Serial.println(cnt);
             if(cnt == parseCommand(command_packet)){
-                  curr_angle += step;
-//               Serial.println(cnt);
+              curr_angle += step;
+//            Serial.println(cnt);
               
               readLuxFromID(ID);
               printRAW(cnt);
@@ -425,9 +454,8 @@ void loop() {
               ack_packet[2] = (cnt | 0);
               packaging(ack_packet);
               ret = Serial2.write((uint8_t *)ack_packet, 4);
-//              Serial.write((uint8_t *)ack_packet, 4);
-              
-              
+//            Serial.write((uint8_t *)ack_packet, 4);
+                      
             }
             else{
           
@@ -556,6 +584,7 @@ void readLuxFromID(int id){
       tcaSelect(mux_id,6);
       rgb_sensor.getData();
       raw_id[DEG135] = rgb_sensor.lux;
+       tcaDeSelect(mux_id);
 
       break;
       
